@@ -18,7 +18,7 @@
 点击后会自动触发两个站点同时访问：
 
 - 海外: https://grf.ragnarok.buzz/
-- 国内：https://casual-ragnarok.gitee.io/cro-patch-grf/ 
+- 国内: https://casual-ragnarok.gitee.io/cro-patch-grf/ 
 
 两个站点都是一样的，均提供了 GRF 资源下载：
 
