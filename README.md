@@ -1,13 +1,13 @@
 # cro-patch-grf
 
-> 随缘仙境补丁 - GRF 资源（已加密）
+> CasualRO 补丁 - GRF 资源（已加密）
 
 ------
 
 ## GRF 使用方法
 
 
-运行登陆器 `_开始游戏.exe` 时，会自动更新游戏补丁：
+运行 RO 登陆器 `_开始游戏.exe` 时，会自动更新游戏补丁：
 
 > 在安装补丁完成之前，【Start Game】按钮是灰色的
 
@@ -15,7 +15,12 @@
 
 但是 GRF 图档文件过大，不会自动下载，需要手工点击 `Download GRF` 按钮。
 
-点击后会自动触发访问 https://grf.ragnarok.buzz/ ，这个站点提供了 GRF 资源下载：
+点击后会自动触发两个站点同时访问：
+
+- 海外: https://grf.ragnarok.buzz/
+- 国内：https://casual-ragnarok.gitee.io/cro-patch-grf/ 
+
+两个站点都是一样的，均提供了 GRF 资源下载：
 
 ![](./imgs/02.jpg)
 
