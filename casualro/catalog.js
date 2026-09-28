@@ -12,14 +12,16 @@ const safeUrl = value => {
     return '#';
   }
 };
-function link(item, label, cls = 'text-link') {
+function isDownload(item) {
+  return /\.(?:zip|7z|rar|tar|gz|bz2|xz|exe|msi|msix|dmg|pkg|apk|grf|rgz|gpf|chm|docx?|xlsx?|pptx?)$/i.test(new URL(safeUrl(item?.url), document.baseURI).pathname);
+}
+function link(item, label, cls = 'text-link', titleOnly = false) {
   if (!item) return '';
   const url = safeUrl(item.url);
   const external = new URL(url, location.href).origin !== location.origin;
   const target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
-  const anchor = `<a class="${cls}" href="${esc(url)}"${target}>${esc(label || item.text || '查看')} ${external ? '↗' : '→'}</a>`;
-  const pdf = !external && /\.pdf$/i.test(new URL(url, location.href).pathname);
-  return anchor + (pdf ? ` <a class="text-link" href="${esc(url)}" download>下载 PDF ↓</a>` : '');
+  const anchor = `<a class="${cls}" href="${esc(url)}"${target}>${esc(label || item.text || '查看')} ${titleOnly ? '' : isDownload(item) ? '↓' : external ? '↗' : '→'}</a>`;
+  return anchor;
 }
 document.querySelector('#header').innerHTML = `<a class="skip" href="#main">跳到主要内容</a><div class="nav-wrap"><a class="brand" href="https://www.casualro.top/"><span class="brand-mark" aria-hidden="true">✿</span><span>随缘仙境<small>CASUAL RAGNAROK</small></span></a><nav aria-label="主导航">${nav.map(([id,name,url])=>`<a href="${url}" ${id===page?'aria-current="page"':''} ${id==='store'?'target="_blank" rel="noopener noreferrer"':''}>${name}</a>`).join('')}</nav><span class="nav-note" aria-hidden="true">♡ Have a lovely adventure</span></div>`;
 document.querySelector('#footer').innerHTML = '<span>✿ 随缘仙境 · Casual Ragnarok Online</span><span>愿每一次传送，都通往喜欢的地方。 ♡</span>';
@@ -31,7 +33,7 @@ const definitions = {
 };
   const [eyebrow,title,description,note,placeholder] = definitions[page];
   main.innerHTML = `<section class="page-intro"><div><p class="eyebrow">${eyebrow}</p><h1>${title}</h1><p class="lead">${description}</p></div><aside class="intro-note">${note}</aside></section>
-  ${page==='downloads'?'<div class="notice">这些 GRF 是随缘仙境客户端的补充图档，大部分经过加密，其他服务器通常无法使用。请先确认你已有对应的游戏客户端。</div><section class="steps" aria-label="安装步骤"><div class="step"><strong>01 · 下载资源</strong>优先下载标记为「必装」的文件。</div><div class="step"><strong>02 · 放入客户端</strong>将 GRF 文件放在游戏客户端根目录。</div><div class="step"><strong>03 · 检查加载顺序</strong>按文件说明修改 data.ini，再启动游戏。</div></section>':''}
+  ${page==='downloads'?'<aside class="cro-resource-notice" aria-label="下载前请留意"><span class="cro-notice-icon" aria-hidden="true">✦</span><div><strong>下载前，请确认客户端</strong><p>这些 GRF 是 <a href="https://www.casualro.top/">随缘仙境（CasualRO）</a> 的补充图档，并非完整客户端。</p><p>大部分资源已加密，仅适用于随缘仙境。其他服务器的玩家请先确认兼容性，避免下载后无法使用。</p></div></aside><section class="steps" aria-label="安装步骤"><div class="step"><strong>01 · 下载资源</strong>优先下载标记为「必装」的文件。</div><div class="step"><strong>02 · 放入客户端</strong>将 GRF 文件放在游戏客户端根目录。</div><div class="step"><strong>03 · 检查加载顺序</strong>按文件说明修改 data.ini，再启动游戏。</div></section>':''}
   <div class="workspace"><aside class="sidebar"><p class="sidebar-title">${page==='downloads'?'资源分类':'浏览分类'}</p><div class="filters" role="group" aria-label="分类筛选"></div><p class="side-note">${page==='npcs'?'保留熟悉的编号与分类。<br>想了解完整功能？点击详情前往商城。':page==='docs'?'按用途整理，让资料更容易找到。历史资料请结合实际版本使用。':'data.ini 序号 0 的优先级最高。原站说明最多配置 0–9 共 10 个 GRF；请结合你的客户端版本确认。'}</p></aside><section aria-label="查询结果"><div class="toolbar"><label class="search-wrap"><span aria-hidden="true">⌕</span><span class="sr-only">${placeholder}</span><input class="search" type="search" placeholder="${placeholder}"></label>${page==='npcs'?'<label><span class="sr-only">排序方式</span><select id="sort"><option value="original">默认顺序</option><option value="id">编号升序</option><option value="price">价格升序</option></select></label>':''}</div><p class="result-count" aria-live="polite">正在加载目录…</p><div id="results"></div></section></div>`;
   initCatalog().catch(() => {
     document.querySelector('.result-count').textContent = '目录加载失败';
@@ -72,11 +74,11 @@ async function initCatalog() {
     const results = document.querySelector('#results');
     if (!filtered.length) { results.innerHTML = '<div class="empty">没有找到匹配内容，试试其他关键词或分类。</div>'; return; }
     if (page==='npcs') {
-      results.innerHTML = `<div class="table-shell" role="region" aria-label="脚本列表，可横向滚动" tabindex="0"><table><thead><tr><th scope="col">编号</th><th scope="col">脚本 / 功能简介</th><th scope="col">适用系列</th><th scope="col">价格</th><th scope="col">快捷入口</th></tr></thead><tbody>${filtered.map(({cells:c})=>`<tr><td class="id-cell">${esc(c[0].text)}</td><td><span class="product-title">${esc(c[1].text)}</span><p class="product-desc">${esc(c[4].text)}</p></td><td><span class="tag">${esc(c[3].text)}</span><span class="version">${esc(c[2].text)}</span></td><td class="price">${esc(c[7].text)}</td><td><div class="row-links">${c[5].links.map(l=>link(l,'详情')).join('')}${c[6].links.map(l=>link(l,'演示')).join('')}${c[8].links.map(l=>link(l,'购买')).join('')}</div></td></tr>`).join('')}</tbody></table></div>`;
+      results.innerHTML = `<div class="table-shell" role="region" aria-label="脚本列表，可横向滚动" tabindex="0"><table><thead><tr><th scope="col">编号</th><th scope="col">脚本 / 功能简介</th><th scope="col">适用系列</th><th scope="col">价格</th><th scope="col">快捷入口</th></tr></thead><tbody>${filtered.map(({cells:c})=>`<tr><td class="id-cell">${esc(c[0].text)}</td><td><span class="product-title">${c[5].links.length ? link(c[5].links[0],c[1].text,'resource-title-link',true) : esc(c[1].text)}</span><p class="product-desc">${esc(c[4].text)}</p></td><td><span class="tag">${esc(c[3].text)}</span><span class="version">${esc(c[2].text)}</span></td><td class="price">${esc(c[7].text)}</td><td><div class="row-links">${c[5].links.map(l=>link(l,'详情')).join('')}${c[6].links.map(l=>link(l,'演示')).join('')}${c[8].links.map(l=>link(l,'购买')).join('')}</div></td></tr>`).join('')}</tbody></table></div>`;
     } else if (page==='docs') {
-      results.innerHTML = `<div class="resource-list">${filtered.map(({cells:c})=>`<article class="resource"><div><span class="tag">${esc(c[1].text)}</span><h3>${esc(c[2].text)}</h3><p>${esc(c[3].text)}</p>${c[3].links.map(l=>link(l)).join(' ')}<span class="muted" aria-label="原站推荐度">${esc(c[0].text)}</span></div><div class="resource-actions">${c[4].links.map(l=>link(l,'查看资料','button secondary')).join('')}</div></article>`).join('')}</div>`;
+      results.innerHTML = `<div class="resource-list">${filtered.map(({cells:c})=>`<article class="resource"><div><span class="tag">${esc(c[1].text)}</span><h3>${c[4].links.length ? link(c[4].links[0],c[2].text,'resource-title-link',true) : esc(c[2].text)}</h3><p>${esc(c[3].text)}</p>${c[3].links.map(l=>link(l)).join(' ')}<span class="muted" aria-label="原站推荐度">${esc(c[0].text)}</span></div><div class="resource-actions">${c[4].links.map(l=>link(l,isDownload(l)?'下载资料':'查看资料','button secondary')).join('')}</div></article>`).join('')}</div>`;
     } else {
-      results.innerHTML = `<div class="resource-list">${filtered.map(({cells:c})=>`<article class="resource"><div><span class="tag">${c[2].checked?'必装':'可选'}${c[1].checked?' · 已加密':''}</span><h3>${esc(c[0].text)}</h3><p>${esc(c[3].text)}</p>${c[3].links.map(l=>link(l)).join(' ')}${c[3].images.map(url=>link({url},'查看效果图')).join(' ')}<p><strong>加载顺序：</strong>${esc(c[4].text)}</p></div><div class="resource-actions">${c[5].links.map(l=>link(l,l.text,'button secondary')).join('')}${c[6].text?`<button class="copy" type="button" data-copy="${esc(c[6].text)}" aria-label="复制提取码 ${esc(c[6].text)}">提取码 ${esc(c[6].text)} · 复制</button>`:''}</div></article>`).join('')}</div>`;
+      results.innerHTML = `<div class="resource-list">${filtered.map(({cells:c})=>`<article class="resource"><div><span class="tag">${c[2].checked?'必装':'可选'}${c[1].checked?' · 已加密':''}</span><h3>${c[5].links.length ? link(c[5].links[0],c[0].text,'resource-title-link',true) : esc(c[0].text)}</h3><p>${esc(c[3].text)}</p>${c[3].links.map(l=>link(l)).join(' ')}${c[3].images.map(url=>link({url},'查看效果图')).join(' ')}<p><strong>加载顺序：</strong>${esc(c[4].text)}</p></div><div class="resource-actions">${c[5].links.map(l=>link(l,isDownload(l)?'下载资料':l.text,'button secondary')).join('')}${c[6].text?`<button class="copy" type="button" data-copy="${esc(c[6].text)}" aria-label="复制提取码 ${esc(c[6].text)}">提取码 ${esc(c[6].text)} · 复制</button>`:''}</div></article>`).join('')}</div>`;
     }
   }
   document.querySelector('#results').addEventListener('click', async event => {
